@@ -14,14 +14,14 @@
     (cond
       (= curr-url "https://chat.openai.com/chat")
       (u/send-chrome-message "open-chatgpt-service" ""))))
- 
+
 ;; 状态 :waiting :getting-request :calculating :sending-result
 (def state (atom :waiting))
 ;; 等待状态的计时
 (def waiting-times (atom 0))
 
 (defn open-chatgpt-service []
-  (let [input-doms (u/get-elements-by-class-name "m-0 w-full resize-none border-0 bg-transparent p-0 pr-7 focus:ring-0 focus-visible:ring-0 dark:bg-transparent")]
+  (let [input-doms (u/get-elements-by-class-name "m-0 w-full resize-none border-0 bg-transparent focus:ring-0 focus-visible:ring-0 dark:bg-transparent py-[10px] pr-10 md:py-3.5 md:pr-12 max-h-[25dvh] max-h-52 placeholder-black/50 dark:placeholder-white/50 pl-4 md:pl-6")]
     (when-not (empty? input-doms)
       (println "成功开启chatgpt的服务")
       (go-loop [last-ts (.getTime (js/Date.))]
@@ -45,10 +45,10 @@
                 ;; 10分钟发送心跳
                 (do
                   (reset! waiting-times 0)
-                  (u/send-chrome-message "get-chatgpt-request-heartbeat" "")) 
-                (u/send-chrome-message "get-chatgpt-request" "")) 
+                  (u/send-chrome-message "get-chatgpt-request-heartbeat" ""))
+                (u/send-chrome-message "get-chatgpt-request" ""))
               (reset! state :getting-request)
-              (<! (timeout 5000)) 
+              (<! (timeout 5000))
               (recur last-ts))
 
         ;; 上一个请求处理中
@@ -88,10 +88,10 @@
   "来自background的获取chatgpt request"
   [id speaker-id speaker ws-uuid bot-uuid message]
   (go
-    (let [input-dom-class "m-0 w-full resize-none border-0 bg-transparent p-0 pr-7 focus:ring-0 focus-visible:ring-0 dark:bg-transparent"
+    (let [input-dom-class "m-0 w-full resize-none border-0 bg-transparent focus:ring-0 focus-visible:ring-0 dark:bg-transparent py-[10px] pr-10 md:py-3.5 md:pr-12 max-h-[25dvh] max-h-52 placeholder-black/50 dark:placeholder-white/50 pl-4 md:pl-6"
           input-dom (last (u/get-elements-by-class-name input-dom-class))
-          enter-btn (last (u/get-elements-by-class-name "absolute p-1 rounded-md text-gray-500 bottom-1.5 right-1 md:bottom-2.5 md:right-2 hover:bg-gray-100 dark:hover:text-gray-400 dark:hover:bg-gray-900 disabled:hover:bg-transparent dark:disabled:hover:bg-transparent"))]
-      
+          enter-btn (last (u/get-elements-by-class-name "absolute bottom-1.5 right-2 rounded-lg border border-black bg-black p-0.5 text-white transition-colors enabled:bg-black disabled:text-gray-400 disabled:opacity-10 dark:border-white dark:bg-white dark:hover:bg-white md:bottom-3 md:right-3"))]
+
       ;; 没有获取到input-dom，提交重试
       (when-not input-dom
         (println "Warning: 没有获取到input-dom，重新提交，刷新")
@@ -110,12 +110,12 @@
       (<! (timeout 1500))
       (set! (.-value input-dom) message)
       ;; 点击enter
-      (<! (timeout 1500)) 
+      (<! (timeout 1500))
       (.click enter-btn)
       ;; 等待出结果
       (<! (timeout 1500))
       (loop [caling-times 0]
-        (println "计算looping...") 
+        (println "计算looping...")
         (if-let [curr-result-dom (last (u/get-elements-by-class-name "w-full border-b border-black/10 dark:border-gray-900/50 text-gray-800 dark:text-gray-100 group bg-gray-50 dark:bg-[#444654]"))]
           ;; 已发送成功，检测完成计算
           (let [question-dom (last (u/get-elements-by-class-name "w-full border-b border-black/10 dark:border-gray-900/50 text-gray-800 dark:text-gray-100 group dark:bg-gray-800"))
@@ -135,7 +135,7 @@
                         :speaker-id speaker-id
                         :speaker speaker
                         :result curr-result-text}
-                
+
                 t-question-text (-> question-text
                                     (strings/replace "\n" "")
                                     (strings/replace "\r" "")
@@ -143,7 +143,7 @@
                 t-message-text (-> message
                                    (strings/replace "\n" "")
                                    (strings/replace "\r" "")
-                                   (strings/trim))] 
+                                   (strings/trim))]
 
             (when-not (strings/includes? t-question-text t-message-text)
 
@@ -158,8 +158,8 @@
               (set! (.-value input-dom) message)
               (<! (timeout 1500))
               (.click enter-btn)
-              (recur caling-times)) 
-            
+              (recur caling-times))
+
             (if (and #_(or (empty? disabled-btns)
                            (not= disabled-btn-text "Regenerate response"))
                  (some? calculating-dom)
@@ -221,7 +221,7 @@
                     (reset! state :sending-result)
                     (u/send-chrome-message "send-chatgpt-result" param))))))
           ;; 等待发送成功
-          (do 
+          (do
             (println "没有成功发送的标志信息，重新输入发送")
             (<! (timeout 1500))
             (set! (.-value input-dom) message)
@@ -267,9 +267,9 @@
                          (= type "get-chatgpt-request")
                          (let [id (get message "id")
                                speaker-id (get message "speaker-id")
-                               speaker (get message "speaker") 
+                               speaker (get message "speaker")
                                ws-uuid (get message "ws-uuid")
-                               bot-uuid (get message "bot-uuid") 
+                               bot-uuid (get message "bot-uuid")
                                message (get message "message")]
                            (if (empty? message)
                              (on-getting-none-chatgpt-request)
@@ -278,11 +278,11 @@
                          ;; 发送结果完毕
                          (= type "send-chatgpt-result")
                          (on-sent-result-reply)
-                         
+
                          ;; 发送重新刷新页面
                          (= type "send-chatgpt-result-refresh")
                          (on-chatgpt-refresh)
-                         
+
                          (= type "send-chatgpt-error-too-many")
                          (on-chatgpt-too-many-refresh)))))))
 
@@ -291,5 +291,3 @@
   (init-message-event))
 
 (set! (.-onload js/window) run-on-window-load)
-
-
